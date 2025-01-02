@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "521563615652",
+    "project_id": "storemanagement-f7775",
+    "storage_bucket": "storemanagement-f7775.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:521563615652:android:78eb028af2067149099131",
+        "android_client_info": {
+          "package_name": "com.example.semihgiyim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBLLwSi7GzUoO1zD4G7eXr4Xkb2uLzTSk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
