@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+//import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -69,7 +69,7 @@ class _MyBarcodesPageState extends State<MyBarcodesPage> {
       final file = File(filePath);
       await file.writeAsBytes(pngBytes);
 
-      await Share.shareFiles([filePath], text: 'Barkod: $generatedBarcode');
+     // await Share.shareFiles([filePath], text: 'Barkod: $generatedBarcode');
     }
   }
 
