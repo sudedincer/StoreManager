@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 class SalesReturnPage extends StatefulWidget {
   @override
@@ -20,17 +21,12 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     fetchProductsAsMap(); // Verileri çek
   }
 
-  // Verileri Firestore'dan çekme ve Map olarak döndürme
   void fetchProductsAsMap() async {
     try {
-      // 'ürünler' koleksiyonundaki dökümanları çek
       QuerySnapshot querySnapshot = await firestore.collection('ürünler').get();
 
-      // Dökümanları döngüyle işleyerek Map'e dönüştür
       for (var doc in querySnapshot.docs) {
         var data = doc.data() as Map<String, dynamic>;
-
-        // Dökümandaki verileri Map'e ekle
         productDatabase[doc.id] = {
           'ürün kodu': data['ürün kodu'] ?? '',
           'school': data['okul adı'] ?? '',
@@ -43,50 +39,36 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     } catch (e) {
       print('Veriler alınırken hata oluştu: $e');
     }
-    print(productDatabase);
-
   }
+
   Map<String, dynamic>? findProductByCode(String productCode) {
     for (var entry in productDatabase.entries) {
-      if (entry.value['ürün kodu'] != null && entry.value['ürün kodu'] == productCode) {
+      if (entry.value['ürün kodu'] == productCode) {
         return entry.value;
       }
     }
     return null;
   }
 
-
   void addItemToCart(String productCode) {
-
-    // Ürün koduna göre ürünü bul
     var foundProduct = findProductByCode(productCode);
-    print('Product Code: $productCode');
-    print('Found Product: $foundProduct');
 
     if (foundProduct != null) {
       setState(() {
-        // Sepette ürün zaten varsa miktarını artır
         var existingItemIndex = cartItems.indexWhere((item) => item['barcode'] == productCode);
         if (existingItemIndex != -1) {
           cartItems[existingItemIndex]['quantity']++;
         } else {
-          // Ürünü sepete ekle
-          var newItem = Map<String, dynamic>.from(foundProduct); // Doğrudan foundProduct kullanılıyor
-          newItem['barcode'] = productCode; // Barkod (ürün kodu) ekleniyor
+          var newItem = Map<String, dynamic>.from(foundProduct);
+          newItem['barcode'] = productCode;
           newItem['quantity'] = 1;
           cartItems.add(newItem);
         }
-        // Toplamı yeniden hesapla
         calculateTotal();
       });
-
-      // Barkod giriş alanını temizle
       _barcodeController.clear();
     } else {
-      // Ürün bulunamadığında kullanıcıya bilgi ver
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ürün bulunamadı')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Ürün bulunamadı')));
     }
   }
 
@@ -108,15 +90,15 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     totalAmount = cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
   }
 
-
-  void completeSale() async {
-    // Satış yapılırken, sepetteki her ürün için Firestore'da adet güncellemesi yapılacak
+  Future<void> completeSale() async {
     try {
-      for (var item in cartItems) {
-        String productCode = item['barcode']; // Ürün kodunu alıyoruz
-        int soldQuantity = item['quantity'];  // Satılan miktarı alıyoruz
+      String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
 
-        // Ürün koduna göre Firestore'da ilgili ürünü bulma
+      for (var item in cartItems) {
+        String productCode = item['barcode'];
+        int soldQuantity = item['quantity'];
+
         QuerySnapshot querySnapshot = await firestore
             .collection('ürünler')
             .where('ürün kodu', isEqualTo: productCode)
@@ -124,53 +106,51 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
 
         if (querySnapshot.docs.isNotEmpty) {
           DocumentSnapshot productDoc = querySnapshot.docs.first;
-
-          // 'adet' değerini alıp int'e dönüştürme
-          int currentQuantity = 0;
-          if (productDoc['adet'] != null) {
-            currentQuantity = int.tryParse(productDoc['adet'].toString()) ?? 0;
-          }
+          int currentQuantity = int.tryParse(productDoc['adet'].toString()) ?? 0;
 
           if (currentQuantity >= soldQuantity) {
-            // Adeti düşürme
             int newQuantity = currentQuantity - soldQuantity;
 
-            // Adeti güncelleme
             await firestore.collection('ürünler').doc(productDoc.id).update({
               'adet': newQuantity,
             });
-            print('Ürün "${item['category']}" satışı tamamlandı ve stok güncellendi.');
-          } else {
-            print('Yeterli stok yok: ${item['category']}');
+
+            // Günlük satış kaydını oluştur
+            await firestore.collection('satışlar').doc(currentDate).collection('kategoriler').doc(item['category']).set({
+              'totalAmount': FieldValue.increment(totalAmount),
+              'sales': FieldValue.increment(soldQuantity),
+              'price': FieldValue.increment(item['price'] * soldQuantity),
+            }, SetOptions(merge: true));
+
+            // Haftalık satış kaydını oluştur
+            await firestore.collection('haftalık satışlar').doc(currentWeek).collection('kategoriler').doc(item['category']).set({
+              'totalAmount': FieldValue.increment(totalAmount),
+              'sales': FieldValue.increment(soldQuantity),
+            }, SetOptions(merge: true));
           }
-        } else {
-          print('Ürün "${item['category']}" Firestore\'da bulunamadı.');
         }
       }
 
-      // Satış tamamlandığında, sepeti temizleyip toplam tutarı sıfırlıyoruz
       setState(() {
         cartItems.clear();
         totalAmount = 0;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Satış başarıyla tamamlandı')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Satış başarıyla tamamlandı')));
     } catch (e) {
       print('Satış sırasında hata oluştu: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bir hata oluştu.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bir hata oluştu.')));
     }
   }
 
   void completeReturn() async {
-    // İade yapılırken, sepetteki her ürün için Firestore'da adet güncellemesi yapılacak
     try {
+      String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
+
       for (var item in cartItems) {
-        String productCode = item['barcode']; // Ürün kodunu alıyoruz
-        int returnedQuantity = item['quantity'];  // İade edilen miktarı alıyoruz
+        String productCode = item['barcode'];
+        int returnedQuantity = item['quantity']; // İade edilen miktarı alıyoruz
 
         // Ürün koduna göre Firestore'da ilgili ürünü bulma
         QuerySnapshot querySnapshot = await firestore
@@ -182,10 +162,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           DocumentSnapshot productDoc = querySnapshot.docs.first;
 
           // 'adet' değerini alıp int'e dönüştürme
-          int currentQuantity = 0;
-          if (productDoc['adet'] != null) {
-            currentQuantity = int.tryParse(productDoc['adet'].toString()) ?? 0;
-          }
+          int currentQuantity = int.tryParse(productDoc['adet'].toString()) ?? 0;
 
           // Adeti artırma
           int newQuantity = currentQuantity + returnedQuantity;
@@ -194,28 +171,38 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           await firestore.collection('ürünler').doc(productDoc.id).update({
             'adet': newQuantity,
           });
+
+          // Günlük satış kaydını güncelle
+          await firestore.collection('satışlar').doc(currentDate).collection('kategoriler').doc(item['category']).set({
+            'totalAmount': FieldValue.increment(-item['price'] * returnedQuantity),
+            'sales': FieldValue.increment(-returnedQuantity),
+            'price': FieldValue.increment(-item['price'] * returnedQuantity),
+          }, SetOptions(merge: true));
+
+          // Haftalık satış kaydını güncelle
+          await firestore.collection('haftalık satışlar').doc(currentWeek).collection('kategoriler').doc(item['category']).set({
+            'totalAmount': FieldValue.increment(-item['price'] * returnedQuantity),
+            'sales': FieldValue.increment(-returnedQuantity),
+          }, SetOptions(merge: true));
+
           print('Ürün "${item['category']}" iade alındı ve stok güncellendi.');
         } else {
           print('Ürün "${item['category']}" Firestore\'da bulunamadı.');
         }
       }
 
-      // İade tamamlandığında, sepeti temizleyip toplam tutarı sıfırlıyoruz
       setState(() {
         cartItems.clear();
         totalAmount = 0;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('İade başarıyla tamamlandı')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('İade işlemi başarıyla tamamlandı')));
     } catch (e) {
       print('İade sırasında hata oluştu: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Bir hata oluştu.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bir hata oluştu.')));
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -296,7 +283,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                 ),
                 ElevatedButton(
-                  onPressed: completeReturn,
+                  onPressed: completeReturn,  // İade et butonu tekrar eklendi
                   child: Text('İade Et'),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 ),
@@ -308,4 +295,3 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     );
   }
 }
-
