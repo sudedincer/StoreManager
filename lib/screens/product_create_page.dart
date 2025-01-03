@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductCreatePage extends StatefulWidget {
   @override
@@ -8,30 +9,31 @@ class ProductCreatePage extends StatefulWidget {
 
 class _ProductCreatePageState extends State<ProductCreatePage> {
   String? selectedCategory;
-  List<String> selectedSchools = [];
+  String? selectedSchool;
   final TextEditingController sizeController = TextEditingController();
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController schoolSearchController = TextEditingController();
-  String barcode = '';
-  String productCode = '';
+  TextEditingController productCodeController = TextEditingController();
+  final _firestore = FirebaseFirestore.instance;
 
   final List<Map<String, dynamic>> categories = [
-    {'name': 'Tişört', 'icon': Icons.accessibility_new},
-    {'name': 'Sweatshirt', 'icon': Icons.accessibility},
-    {'name': 'Pantolon', 'icon': Icons.pan_tool},
-    {'name': 'Ceket', 'icon': Icons.wallet_travel},
-    {'name': 'Şort', 'icon': Icons.sports_handball},
-    {'name': 'Şort Etek', 'icon': Icons.straighten},
-    {'name': 'Selanik', 'icon': Icons.texture},
-    {'name': 'Eşofman Takımı', 'icon': Icons.sports_soccer},
-    {'name': 'Eşofman Tişörtü', 'icon': Icons.sports_tennis},
-    {'name': 'Eşofman Altı', 'icon': Icons.sports_basketball},
-    {'name': 'Yeni Kategori', 'icon': Icons.add_circle},
+    {'name': 'Tişört'},
+    {'name': 'Sweatshirt'},
+    {'name': 'Pantolon'},
+    {'name': 'Ceket'},
+    {'name': 'Şort'},
+    {'name': 'Şort Etek'},
+    {'name': 'Selanik'},
+    {'name': 'Eşofman Takımı'},
+    {'name': 'Eşofman Tişörtü'},
+    {'name': 'Eşofman Altı'},
+    {'name': 'Yeni Kategori'},
   ];
 
 //okullar girrilecek
-  final List<String> schools = List.generate(70, (index) => 'Okul ${index + 1}');
+  final List<String> schools =
+      List.generate(70, (index) => 'Okul ${index + 1}');
   List<String> filteredSchools = [];
 
   @override
@@ -40,20 +42,18 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     filteredSchools = schools;
   }
 
-
   //buraya sistemdeki barkodu getirilecek
   void generateBarcode() {
     setState(() {
-      barcode = 'BRCD${DateTime.now().millisecondsSinceEpoch}';
-      productCode = 'PRD${DateTime.now().millisecondsSinceEpoch}';
+      productCodeController.text = 'PRD${DateTime.now().millisecondsSinceEpoch}';
     });
   }
 
   void filterSchools(String query) {
     setState(() {
-      filteredSchools = schools.where((school) =>
-          school.toLowerCase().contains(query.toLowerCase())
-      ).toList();
+      filteredSchools = schools
+          .where((school) => school.toLowerCase().contains(query.toLowerCase()))
+          .toList();
     });
   }
 
@@ -71,7 +71,8 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Kategori Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Kategori Seçin',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               GridView.builder(
                 shrinkWrap: true,
@@ -94,8 +95,8 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(categories[index]['icon'], size: 40),
-                          Text(categories[index]['name'], textAlign: TextAlign.center),
+                          Text(categories[index]['name'],
+                              textAlign: TextAlign.center),
                         ],
                       ),
                     ),
@@ -103,39 +104,24 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                 },
               ),
               SizedBox(height: 20),
+              SizedBox(height: 10),
               Text('Okul Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
-              TextField(
-                controller: schoolSearchController,
-                decoration: InputDecoration(
-                  labelText: 'Okul Ara',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: filterSchools,
-              ),
-              SizedBox(height: 10),
-              Container(
-                height: 200,
-                child: ListView.builder(
-                  itemCount: filteredSchools.length,
-                  itemBuilder: (context, index) {
-                    final school = filteredSchools[index];
-                    return CheckboxListTile(
-                      title: Text(school),
-                      value: selectedSchools.contains(school),
-                      onChanged: (bool? value) {
-                        setState(() {
-                          if (value == true) {
-                            selectedSchools.add(school);
-                          } else {
-                            selectedSchools.remove(school);
-                          }
-                        });
-                      },
-                    );
-                  },
-                ),
+              DropdownButton<String>(
+                value: selectedSchool,
+                hint: Text('Okul Seçin'),
+                isExpanded: true,
+                items: schools.map((String school) {
+                  return DropdownMenuItem<String>(
+                    value: school,
+                    child: Text(school),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    selectedSchool = newValue;
+                  });
+                },
               ),
               SizedBox(height: 20),
               Row(
@@ -169,8 +155,12 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                         labelText: 'Fiyat',
                         border: OutlineInputBorder(),
                       ),
-                      keyboardType: TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}'))],
+                      keyboardType:
+                          TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d+\.?\d{0,2}'))
+                      ],
                     ),
                   ),
                 ],
@@ -186,11 +176,9 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-
                       //burası da değişebilir gelen barkoda göre
                       children: [
-                        Text('Barkod: $barcode'),
-                        Text('Ürün Kodu: $productCode'),
+                        Text("Ürün Kodu: ${productCodeController.text}")
                       ],
                     ),
                   ),
@@ -200,14 +188,71 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
               Center(
                 child: ElevatedButton(
                   onPressed: () {
-                    // Burada firebase'e kaydetme işlemi yapılacak
+                    // Firebase'e kaydetme işlemi
+                    FirebaseFirestore.instance.collection('ürünler').add({
+                      'okul adı': selectedSchool,
+                      'kategori': selectedCategory,
+                      'beden': sizeController.text, // Beden bilgisi
+                      'adet': quantityController.text, // Adet bilgisi
+                      'fiyat': priceController.text, // Fiyat bilgisi
+                      'ürün kodu': productCodeController.text,
+                    }).then((_) {
+                      // Başarılı olursa
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Başarılı'),
+                            content: Text('Veri başarıyla kaydedildi!'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text('Tamam'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                      // Giriş alanlarını sıfırla
+                      setState(() {
+                        sizeController.clear();
+                        quantityController.clear();
+                        priceController.clear();
+                        productCodeController.clear();
+                        selectedSchool=null;
+                        selectedCategory=null;
+                      });
+
+                    }).catchError((error) {
+                      // Hata olursa
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text('Hata'),
+                            content: Text(
+                                'Veri kaydedilirken bir hata oluştu: $error'),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text('Tamam'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    });
                   },
                   child: Text('Kaydet'),
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                   ),
                 ),
-              ),
+              )
             ],
           ),
         ),
@@ -215,4 +260,3 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     );
   }
 }
-
