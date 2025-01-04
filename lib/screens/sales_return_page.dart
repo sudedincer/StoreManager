@@ -94,6 +94,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     try {
       String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
       String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
+      String currentDay = DateFormat('EEE').format(DateTime.now()); // gün
 
       for (var item in cartItems) {
         String productCode = item['barcode'];
@@ -122,10 +123,10 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
               'price': FieldValue.increment(item['price'] * soldQuantity),
             }, SetOptions(merge: true));
 
+
             // Haftalık satış kaydını oluştur
-            await firestore.collection('haftalık satışlar').doc(currentWeek).collection('kategoriler').doc(item['category']).set({
+            await firestore.collection('haftalık satışlar').doc('haftalar').collection(currentWeek).doc(currentDay).set({
               'totalAmount': FieldValue.increment(totalAmount),
-              'sales': FieldValue.increment(soldQuantity),
             }, SetOptions(merge: true));
           }
         }
@@ -147,6 +148,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     try {
       String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
       String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
+      String currentDay = DateFormat('EEE').format(DateTime.now()); // gün adı
 
       for (var item in cartItems) {
         String productCode = item['barcode'];
@@ -180,9 +182,8 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           }, SetOptions(merge: true));
 
           // Haftalık satış kaydını güncelle
-          await firestore.collection('haftalık satışlar').doc(currentWeek).collection('kategoriler').doc(item['category']).set({
+          await firestore.collection('haftalık satışlar').doc('haftalar').collection(currentWeek).doc(currentDay).set({
             'totalAmount': FieldValue.increment(-item['price'] * returnedQuantity),
-            'sales': FieldValue.increment(-returnedQuantity),
           }, SetOptions(merge: true));
 
           print('Ürün "${item['category']}" iade alındı ve stok güncellendi.');

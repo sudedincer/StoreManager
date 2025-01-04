@@ -1,28 +1,80 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
-class RevenueTrackingPage extends StatelessWidget {
+class RevenueTrackingPage extends StatefulWidget {
+  @override
+  _RevenueTrackingPageState createState() => _RevenueTrackingPageState();
+}
 
-  //bunlar veritabanından gelicek
-  final List<Map<String, dynamic>> dailySales = [
-    {'category': 'Tişört', 'quantity': 15, 'revenue': 450.0},
-    {'category': 'Pantolon', 'quantity': 10, 'revenue': 800.0},
-    {'category': 'Sweatshirt', 'quantity': 8, 'revenue': 560.0},
-    {'category': 'Ceket', 'quantity': 5, 'revenue': 750.0},
-    {'category': 'Şort', 'quantity': 12, 'revenue': 360.0},
-  ];
+class _RevenueTrackingPageState extends State<RevenueTrackingPage> {
+  List<Map<String, dynamic>> dailySales = [];
+  List<Map<String, dynamic>> weeklySales = [];
+  bool isLoading = true;
 
-  //bunlar veritabanından gelicek
-  final List<Map<String, dynamic>> weeklySales = [
-    {'day': 'Pazartesi', 'revenue': 2500.0},
-    {'day': 'Salı', 'revenue': 2200.0},
-    {'day': 'Çarşamba', 'revenue': 2800.0},
-    {'day': 'Perşembe', 'revenue': 2600.0},
-    {'day': 'Cuma', 'revenue': 3000.0},
-    {'day': 'Cumartesi', 'revenue': 3500.0},
-    {'day': 'Pazar', 'revenue': 2900.0},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    fetchSalesData();
+  }
+
+  Future<void> fetchSalesData() async {
+    try {
+      // Günlük satışlar
+      String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
+      List<String> daysOfWeek = ['Mon', 'Thu', 'Wed', 'Tue', 'Fri', 'Sat', 'Sun'];
+
+      QuerySnapshot dailySnapshot = await FirebaseFirestore.instance
+          .collection('satışlar')
+          .doc(currentDate)
+          .collection('kategoriler')
+          .get();
+
+      List<Map<String, dynamic>> fetchedDailySales = dailySnapshot.docs.map((doc) {
+        return {
+          'category': doc.id,
+          'quantity': doc['sales'],
+          'revenue': doc['totalAmount'],
+        };
+      }).toList();
+
+      // Haftalık satışlar
+
+      QuerySnapshot<Map<String, dynamic>> weeklySnapshot = await FirebaseFirestore.instance
+          .collection('haftalık satışlar')
+          .doc('haftalar')
+          .collection(currentWeek)
+          .get();
+
+      List<Map<String, dynamic>> fetchedWeeklySales = weeklySnapshot.docs.map((doc) {
+        return {
+          'day':doc.id,
+          'revenue': doc['totalAmount'],
+        };
+      }).toList();
+
+      // Gün sırasına göre veriyi sıralıyoruz
+      fetchedWeeklySales.sort((a, b) {
+        int dayA = daysOfWeek.indexOf(a['day']);
+        int dayB = daysOfWeek.indexOf(b['day']);
+        return dayA.compareTo(dayB);
+      });
+
+      setState(() {
+        dailySales = fetchedDailySales;
+        weeklySales = fetchedWeeklySales;
+        isLoading = false;
+        print(weeklySales);
+      });
+    } catch (e) {
+      print('Veri çekme hatası: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +86,9 @@ class RevenueTrackingPage extends StatelessWidget {
         centerTitle: true,
         backgroundColor: Colors.blueGrey[800],
       ),
-      body: SingleChildScrollView(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -116,8 +170,8 @@ class RevenueTrackingPage extends StatelessWidget {
                         series: <ChartSeries>[
                           LineSeries<Map<String, dynamic>, String>(
                             dataSource: weeklySales,
-                            xValueMapper: (Map<String, dynamic> sales, _) => sales['day'].substring(0, 3),
-                            yValueMapper: (Map<String, dynamic> sales, _) => sales['revenue'],
+                            xValueMapper: (Map<String, dynamic> sales, _) =>  sales['day'], // Günler
+                            yValueMapper: (Map<String, dynamic> sales, _) => sales['revenue'], // Ciro
                             name: 'Günlük Ciro',
                             color: Colors.red,
                             markerSettings: MarkerSettings(isVisible: true),
@@ -135,4 +189,3 @@ class RevenueTrackingPage extends StatelessWidget {
     );
   }
 }
-
