@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:semihgiyim/screens/settings_page.dart';
 import 'product_create_page.dart';
 import 'stock_tracking_page.dart';
 import 'sales_return_page.dart';
 import 'wholesale_orders_page.dart';
-import 'my_barcodes_page.dart';
 import 'revenue_tracking_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -12,7 +12,10 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: Text('Semih Giyim',style: TextStyle(color: Colors.white),),
+        title: Text(
+          'Semih Giyim',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         backgroundColor: Colors.blueGrey[800],
         elevation: 0,
@@ -27,7 +30,10 @@ class HomePage extends StatelessWidget {
               children: [
                 Text(
                   'Hoş Geldiniz',
-                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blueGrey[800]),
+                  style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey[800]),
                 ),
                 SizedBox(height: 32),
                 Expanded(
@@ -37,40 +43,54 @@ class HomePage extends StatelessWidget {
                     crossAxisSpacing: 24,
                     childAspectRatio: 1.5,
                     children: <Widget>[
-                      _buildMenuCard(context, 'Satış / İade', Icons.shopping_cart, Colors.green, () {
+                      _buildMenuCard(context, 'Satış / İade',
+                          Icons.shopping_cart, Colors.green, () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => SalesReturnPage()),
+                          MaterialPageRoute(
+                              builder: (context) => SalesReturnPage()),
                         );
                       }),
-                      _buildMenuCard(context, 'Toptancı Siparişleri', Icons.local_shipping, Colors.orange, () {
+                      _buildMenuCard(context, 'Toptancı Siparişleri',
+                          Icons.local_shipping, Colors.orange, () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => WholesaleOrdersPage()),
+                          MaterialPageRoute(
+                              builder: (context) => WholesaleOrdersPage()),
                         );
                       }),
-                      _buildMenuCard(context, 'Stok Takibi', Icons.inventory, Colors.blue, () {
+                      _buildMenuCard(
+                          context, 'Stok Takibi', Icons.inventory, Colors.blue,
+                          () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => StockTrackingPage()),
+                          MaterialPageRoute(
+                              builder: (context) => StockTrackingPage()),
                         );
                       }),
-                      _buildMenuCard(context, 'Yeni Ürün Ekleme', Icons.add_circle, Colors.purple, () {
+                      _buildMenuCard(context, 'Yeni Ürün Ekleme',
+                          Icons.add_circle, Colors.purple, () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => ProductCreatePage()),
+                          MaterialPageRoute(
+                              builder: (context) => ProductCreatePage()),
                         );
                       }),
-                      _buildMenuCard(context, 'Ciro Takibi', Icons.bar_chart, Colors.red, () {
+                      _buildMenuCard(
+                          context, 'Ciro Takibi', Icons.bar_chart, Colors.red,
+                          () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => RevenueTrackingPage()),
+                          MaterialPageRoute(
+                              builder: (context) => RevenueTrackingPage()),
                         );
                       }),
-                      _buildMenuCard(context, 'Barkodlarım', Icons.qr_code, Colors.teal, () {
+                      _buildMenuCard(
+                          context, 'Ayarlar', Icons.settings, Colors.teal, () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => MyBarcodesPage()),
+                          MaterialPageRoute(
+                              builder: (context) => SettingsPage()),
                         );
                       }),
                     ],
@@ -84,7 +104,8 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildMenuCard(BuildContext context, String title, IconData icon,
+      Color color, VoidCallback onTap) {
     return Card(
       elevation: 8.0,
       shape: RoundedRectangleBorder(
@@ -126,4 +147,3 @@ class HomePage extends StatelessWidget {
     );
   }
 }
-

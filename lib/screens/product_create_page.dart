@@ -157,38 +157,42 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Kategori Seçin',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Kategori Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
-              GridView.builder(
-                shrinkWrap: true,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 6,
-                  childAspectRatio: 1,
-                ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedCategory = categories[index]['name'];
-                      });
-                    },
-                    child: Card(
-                      color: selectedCategory == categories[index]['name']
-                          ? Colors.blue[100]
-                          : Colors.white,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(categories[index]['name'],
-                              textAlign: TextAlign.center),
-                        ],
+              Container(
+                height: MediaQuery.of(context).size.height * 0.4, // Kategoriler için sabit bir yükseklik
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 6, // Ekrana aynı anda kaç sütun sığacak
+                    crossAxisSpacing: 8, // Kartlar arası yatay boşluk
+                    mainAxisSpacing: 8, // Kartlar arası dikey boşluk
+                    childAspectRatio: 1.8, // Kartların en-boy oranı
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = categories[index]['name'];
+                        });
+                      },
+                      child: Card(
+                        color: selectedCategory == categories[index]['name']
+                            ? Colors.blue[100]
+                            : Colors.white,
+                        child: Center(
+                          child: Text(
+                            categories[index]['name'],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
+
               SizedBox(height: 20),
               SizedBox(height: 10),
               Text('Okul Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

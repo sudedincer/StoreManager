@@ -266,7 +266,7 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
                   physics: NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 6,
-                    childAspectRatio: 1.5,
+                    childAspectRatio: 1.4,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
                   ),
