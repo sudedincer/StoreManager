@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StockTrackingPage extends StatefulWidget {
   @override
@@ -6,49 +7,103 @@ class StockTrackingPage extends StatefulWidget {
 }
 
 class _StockTrackingPageState extends State<StockTrackingPage> {
-  List<String> selectedCategories = [];
+  String? selectedCategory;
   String? selectedSchool;
   List<Map<String, dynamic>> stockData = [];
 
   //buradaki iconlar değişecek
-  final List<Map<String, dynamic>> categories = [
-    {'name': 'Tişört', 'icon': Icons.accessibility_new},
-    {'name': 'Sweatshirt', 'icon': Icons.accessibility},
-    {'name': 'Pantolon', 'icon': Icons.pan_tool},
-    {'name': 'Ceket', 'icon': Icons.wallet_travel},
-    {'name': 'Şort', 'icon': Icons.sports_handball},
-    {'name': 'Şort Etek', 'icon': Icons.straighten},
-    {'name': 'Selanik', 'icon': Icons.texture},
-    {'name': 'Eşofman Takımı', 'icon': Icons.sports_soccer},
-    {'name': 'Eşofman Tişörtü', 'icon': Icons.sports_tennis},
-    {'name': 'Eşofman Altı', 'icon': Icons.sports_basketball},
+   List<Map<String, dynamic>> categories = [
+    {'name': 'Tişört'},
+    {'name': 'Sweatshirt'},
+    {'name': 'Pantolon'},
+    {'name': 'Ceket'},
+    {'name': 'Şort'},
+    {'name': 'Şort Etek'},
+    {'name': 'Selanik'},
+    {'name': 'Eşofman Takımı'},
+    {'name': 'Eşofman Tişörtü'},
+    {'name': 'Eşofman Altı'},
   ];
 
-  final List<String> schools = List.generate(70, (index) => 'Okul ${index + 1}');
+   List<String> schools = [];
 
-  void searchStock() {
-    // Simulating API call or database query
-    //veritavanından burada gerçek veriler gelecek
-    setState(() {
-      stockData = [
-        {'size': 'S', 'quantity': 10, 'price': 29.99},
-        {'size': 'M', 'quantity': 15, 'price': 29.99},
-        {'size': 'L', 'quantity': 20, 'price': 34.99},
-        {'size': 'XL', 'quantity': 5, 'price': 34.99},
-      ];
-    });
+  @override
+  void initState() {
+    super.initState();
+    getSchools(); // Okul adlarını Firebase'den çekmek için çağrılıyor
   }
 
-  void updateStock(int index) {
-    //güncelleme yapıldığında veritabanında da güncellenme sağlanmalı
+  Future<void> getSchools() async {
+    try {
+      // Firestore koleksiyonundan okul adlarını çekiyoruz
+      QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('ürünler').get();
+
+      // Okul adlarını bir Set içinde saklıyoruz, böylece her okul adı yalnızca bir kez eklenir
+      Set<String> uniqueSchools = {};
+
+      for (var doc in snapshot.docs) {
+        String schoolName = doc['okul adı']; // 'okul adı' alanını çekiyoruz
+        uniqueSchools.add(schoolName); // Set'e ekliyoruz, otomatik olarak benzersiz olur
+      }
+
+      setState(() {
+        schools = uniqueSchools.toList(); // Set'i listeye çevirip okulların listesini güncelliyoruz
+      });
+    } catch (e) {
+      print("Okul verileri alınırken hata oluştu: $e");
+    }
+  }
+
+  void searchStock() async {
+    // Simulating API call or database query
+    //veritavanından burada gerçek veriler gelecek
+    if (selectedSchool == null || selectedCategory==null) {
+      // Okul veya kategori seçilmemişse, uyarı verebilirsiniz
+      return;
+    }
+
+    try {
+      setState(() {
+        stockData = []; // Önce mevcut veriyi sıfırlıyoruz
+      });
+
+      // Firestore koleksiyonundan okul adı ve kategoriye göre veri çekiyoruz
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('ürünler')
+          .where('okul adı', isEqualTo: selectedSchool) // Okul adı filtresi
+          .where('kategori', isEqualTo: selectedCategory) // Kategorileri filtreliyoruz
+          .get();
+
+      // Firestore'dan dönen verileri stockData listesine ekliyoruz
+      List<Map<String, dynamic>> fetchedStockData = [];
+      for (var doc in snapshot.docs) {
+        // Veriyi map olarak ekliyoruz
+        fetchedStockData.add({
+          'beden': doc['beden'],
+          'adet': doc['adet'],
+          'fiyat': doc['fiyat'],
+          'ürün kodu': doc['ürün kodu'],
+        });
+      }
+
+      setState(() {
+        stockData = fetchedStockData; // Veriyi stockData'ya ekliyoruz
+      });
+    } catch (e) {
+      print("Stok verileri alınırken hata oluştu: $e");
+    }
+  }
+
+  void updateStock(int index) async {
+    // Firestore'da veri güncellemeleri yapmak için gerekli
+    TextEditingController quantityController = TextEditingController(text: stockData[index]['adet'].toString());
+    TextEditingController priceController = TextEditingController(text: stockData[index]['fiyat'].toString());
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        TextEditingController quantityController = TextEditingController(text: stockData[index]['quantity'].toString());
-        TextEditingController priceController = TextEditingController(text: stockData[index]['price'].toString());
-
         return AlertDialog(
-          title: Text('Güncelle: ${stockData[index]['size']}'),
+          title: Text('Güncelle: ${stockData[index]['beden']}'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -71,12 +126,42 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
             ),
             TextButton(
               child: Text('Güncelle'),
-              onPressed: () {
-                setState(() {
-                  stockData[index]['quantity'] = int.parse(quantityController.text);
-                  stockData[index]['price'] = double.parse(priceController.text);
-                });
-                Navigator.of(context).pop();
+              onPressed: () async {
+                // Kullanıcı yeni adet ve fiyat girerse bu verileri Firestore'a kaydediyoruz
+                String productCode = stockData[index]['ürün kodu'];
+
+                // Firestore veritabanında "ürünler" koleksiyonundaki ürün kodu ile eşleşen ürünü buluyoruz
+                try {
+                  // Firestore'dan ürün koduna göre belgeyi güncelleme
+                  await FirebaseFirestore.instance
+                      .collection('ürünler')
+                      .where('ürün kodu', isEqualTo: productCode)
+                      .get()
+                      .then((querySnapshot) async {
+                    if (querySnapshot.docs.isNotEmpty) {
+                      // Ürün bulundu, güncelleme işlemi yapılacak
+                      var productDoc = querySnapshot.docs.first;
+
+                      // Ürün verilerini güncelleme
+                      await productDoc.reference.update({
+                        'adet': int.parse(quantityController.text),
+                        'fiyat': priceController.text,
+                      });
+
+                      // Veriyi kullanıcı arayüzüne de yansıtıyoruz
+                      setState(() {
+                        stockData[index]['adet'] = int.parse(quantityController.text);
+                        stockData[index]['fiyat'] = double.parse(priceController.text);
+                      });
+                      Navigator.of(context).pop(); // Dialogu kapat
+                    } else {
+                      // Ürün bulunamazsa kullanıcıya hata mesajı gösterilebilir
+                      print('Ürün bulunamadı!');
+                    }
+                  });
+                } catch (e) {
+                  print("Güncellenirken hata oluştu: $e");
+                }
               },
             ),
           ],
@@ -84,6 +169,7 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -99,43 +185,46 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Kategori Seçin kısmı
               Text('Kategori Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 5,
-                  childAspectRatio: 1,
-                ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (selectedCategories.contains(categories[index]['name'])) {
-                          selectedCategories.remove(categories[index]['name']);
-                        } else {
-                          selectedCategories.add(categories[index]['name']);
-                        }
-                      });
-                    },
-                    child: Card(
-                      color: selectedCategories.contains(categories[index]['name'])
-                          ? Colors.blue[100]
-                          : Colors.white,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(categories[index]['icon'], size: 40),
-                          Text(categories[index]['name'], textAlign: TextAlign.center),
-                        ],
+              Container(
+                height: MediaQuery.of(context).size.height * 0.4, // Kategoriler için sabit bir yükseklik
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 6, // Ekrana aynı anda kaç sütun sığacak
+                    crossAxisSpacing: 8, // Kartlar arası yatay boşluk
+                    mainAxisSpacing: 8, // Kartlar arası dikey boşluk
+                    childAspectRatio: 1.8, // Kartların en-boy oranı
+                  ),
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedCategory = categories[index]['name'];
+                        });
+                      },
+                      child: Card(
+                        color: selectedCategory == categories[index]['name']
+                            ? Colors.blue[100]
+                            : Colors.white,
+                        child: Center(
+                          child: Text(
+                            categories[index]['name'],
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
+
               SizedBox(height: 20),
+
+              // Okul Seçin kısmı
               Text('Okul Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               DropdownButton<String>(
@@ -154,7 +243,10 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
                   });
                 },
               ),
+
               SizedBox(height: 20),
+
+              // Arama butonu
               Center(
                 child: ElevatedButton(
                   onPressed: searchStock,
@@ -164,16 +256,19 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
                   ),
                 ),
               ),
+
               SizedBox(height: 20),
+
+              // Stok verileri
               if (stockData.isNotEmpty)
                 GridView.builder(
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                    crossAxisCount: 6,
                     childAspectRatio: 1.5,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
                   ),
                   itemCount: stockData.length,
                   itemBuilder: (context, index) {
@@ -185,12 +280,13 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              stockData[index]['size'],
+                              stockData[index]['beden'],
                               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                             ),
                             SizedBox(height: 8),
-                            Text('Adet: ${stockData[index]['quantity']}'),
-                            Text('Fiyat: ₺${stockData[index]['price'].toStringAsFixed(2)}'),
+                            Text('Adet: ${stockData[index]['adet']}'),
+                            Text('Fiyat: ₺${double.parse(stockData[index]['fiyat'].toString()).toStringAsFixed(2)}'),
+                            Text('Ürün Kodu: ${stockData[index]['ürün kodu']}'),
                             SizedBox(height: 8),
                             ElevatedButton(
                               onPressed: () => updateStock(index),
@@ -207,6 +303,7 @@ class _StockTrackingPageState extends State<StockTrackingPage> {
         ),
       ),
     );
+
   }
 }
 
