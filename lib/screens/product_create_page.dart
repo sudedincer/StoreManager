@@ -15,7 +15,6 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
   final TextEditingController priceController = TextEditingController();
   final TextEditingController schoolSearchController = TextEditingController();
   TextEditingController productCodeController = TextEditingController();
-  final _firestore = FirebaseFirestore.instance;
 
   final List<Map<String, dynamic>> categories = [
     {'name': 'Tişört'},
@@ -28,11 +27,10 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
     {'name': 'Eşofman Takımı'},
     {'name': 'Eşofman Tişörtü'},
     {'name': 'Eşofman Altı'},
-    {'name': 'Yeni Kategori'},
   ];
 
 //okullar girrilecek
-  final List<String> schools =[
+  final List<String> schools = [
     '19 Mayıs Ortaokulu',
     '7 Eylül Ortaokulu',
     'Akçapınar İsmail Türk İlkokulu',
@@ -131,7 +129,8 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
   //buraya sistemdeki barkodu getirilecek
   void generateBarcode() {
     setState(() {
-      productCodeController.text = 'PRD${DateTime.now().millisecondsSinceEpoch}';
+      productCodeController.text =
+          'PRD${DateTime.now().millisecondsSinceEpoch}';
     });
   }
 
@@ -157,10 +156,12 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Kategori Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Kategori Seçin',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               Container(
-                height: MediaQuery.of(context).size.height * 0.4, // Kategoriler için sabit bir yükseklik
+                height: MediaQuery.of(context).size.height *
+                    0.4, // Kategoriler için sabit bir yükseklik
                 child: GridView.builder(
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 6, // Ekrana aynı anda kaç sütun sığacak
@@ -192,10 +193,8 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                   },
                 ),
               ),
-
-              SizedBox(height: 20),
-              SizedBox(height: 10),
-              Text('Okul Seçin', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Okul Seçin',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               DropdownButton<String>(
                 value: selectedSchool,
@@ -277,23 +276,20 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
               SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
-                  onPressed: () {
-                    // Firebase'e kaydetme işlemi
-                    FirebaseFirestore.instance.collection('ürünler').add({
-                      'okul adı': selectedSchool,
-                      'kategori': selectedCategory,
-                      'beden': sizeController.text, // Beden bilgisi
-                      'adet': int.parse(quantityController.text), // Adet bilgisi
-                      'fiyat': priceController.text, // Fiyat bilgisi
-                      'ürün kodu': productCodeController.text,
-                    }).then((_) {
-                      // Başarılı olursa
+                  onPressed: () async {
+                    if (selectedSchool == null ||
+                        selectedCategory == null ||
+                        sizeController.text.isEmpty ||
+                        quantityController.text.isEmpty ||
+                        priceController.text.isEmpty ||
+                        productCodeController.text.isEmpty) {
+                      // Zorunlu alanlar kontrolü
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
-                            title: Text('Başarılı'),
-                            content: Text('Veri başarıyla kaydedildi!'),
+                            title: Text('Uyarı'),
+                            content: Text('Lütfen tüm alanları doldurun.'),
                             actions: [
                               TextButton(
                                 onPressed: () {
@@ -305,25 +301,84 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                           );
                         },
                       );
-                      // Giriş alanlarını sıfırla
-                      setState(() {
-                        sizeController.clear();
-                        quantityController.clear();
-                        priceController.clear();
-                        productCodeController.clear();
-                        selectedSchool=null;
-                        selectedCategory=null;
-                      });
+                      return;
+                    }
 
-                    }).catchError((error) {
+                    try {
+                      // Firestore'da aynı okul, kategori ve beden için kontrol
+                      QuerySnapshot existingProduct = await FirebaseFirestore.instance
+                          .collection('ürünler')
+                          .where('okul adı', isEqualTo: selectedSchool)
+                          .where('kategori', isEqualTo: selectedCategory)
+                          .where('beden', isEqualTo: sizeController.text.toUpperCase())
+                          .get();
+
+                      if (existingProduct.docs.isNotEmpty) {
+                        // Aynı ürün zaten mevcut
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Ürün Zaten Mevcut'),
+                              content: Text('Bu ürün zaten kayıtlı.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Tamam'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      } else {
+                        // Yeni ürün ekleme
+                        await FirebaseFirestore.instance.collection('ürünler').add({
+                          'okul adı': selectedSchool,
+                          'kategori': selectedCategory,
+                          'beden': sizeController.text.toUpperCase(),
+                          'adet': int.parse(quantityController.text),
+                          'fiyat': priceController.text,
+                          'ürün kodu': productCodeController.text,
+                        });
+
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Başarılı'),
+                              content: Text('Veri başarıyla kaydedildi!'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  child: Text('Tamam'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        // Giriş alanlarını sıfırla
+                        setState(() {
+                          sizeController.clear();
+                          quantityController.clear();
+                          priceController.clear();
+                          productCodeController.clear();
+                          selectedSchool = null;
+                          selectedCategory = null;
+                        });
+                      }
+                    } catch (error) {
                       // Hata olursa
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
                             title: Text('Hata'),
-                            content: Text(
-                                'Veri kaydedilirken bir hata oluştu: $error'),
+                            content: Text('Veri kaydedilirken bir hata oluştu: $error'),
                             actions: [
                               TextButton(
                                 onPressed: () {
@@ -335,7 +390,7 @@ class _ProductCreatePageState extends State<ProductCreatePage> {
                           );
                         },
                       );
-                    });
+                    }
                   },
                   child: Text('Kaydet'),
                   style: ElevatedButton.styleFrom(
