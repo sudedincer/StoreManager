@@ -11,117 +11,26 @@ class WholesaleOrdersPage extends StatefulWidget {
 class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
   String? selectedSchool;
   String? selectedCategory;
-  final TextEditingController sizeController = TextEditingController();
+  String? selectedSize;
   final TextEditingController quantityController = TextEditingController();
 
   List<Map<String, dynamic>> activeOrders = [];
+  Set<String> schoolSet = Set();
+  Set<String> categorySet = Set();
 
-  final List<String> schools = [
-    '19 Mayıs Ortaokulu',
-    '7 Eylül Ortaokulu',
-    'Akçapınar İsmail Türk İlkokulu',
-    'Akçapınar İsmail Türk Ortaokulu',
-    'Arif Canpoyraz İlkokulu',
-    'Atatürk İlkokulu',
-    'Avşar Ortaokulu',
-    'Besime Elagöz Anadolu Lisesi',
-    'Cahit Gönlübol Mesleki Ve Teknik Anadolu Lisesi',
-    'Çampınar İlkokulu',
-    'Çatalköprü İlkokulu',
-    'Çatalköprü Ortaokulu',
-    'Çepni Bektaş İlkokulu',
-    'Çıkrıkçı Yaşar Kazimet Aybars İlkokulu',
-    'Çıkrıkçı Yaşar Kazimet Aybars Ortaokulu',
-    'Cumhuriyet Anaokulu',
-    'Cumhuriyet İlkokulu',
-    'Dağmarmara Niyazi Üzmez İlkokulu',
-    'Dağmarmara Niyazi Üzmez Ortaokulu',
-    'Dalbahce İlkokulu',
-    'Dr. Hüseyin Orhan İlkokulu',
-    'Firdevs Gürel Özel Eğitim İş Uygulama Merkezi (Okulu)',
-    'Firdevs Gürel Özel Eğitim Uygulama Merkezi I. Kademe',
-    'Firdevs Gürel Özel Eğitim Uygulama Merkezi II. Kademe',
-    'Gazi Ortaokulu',
-    'Hacı Mukaddes Ahmet Altan Ortaokulu',
-    'Hacı Mukaddes-Ahmet Altan İlkokulu',
-    'Halil Kale Fen Lisesi',
-    'Halk Eğitim Merkezi',
-    'Hasan Ferdi Turgutlu Mesleki ve Teknik Anadolu Lisesi',
-    'Hasan Ferdi Turgutlu Ortaokulu',
-    'Hasan Üzmez Ortaokulu',
-    'Hilmi Pekcan İlkokulu',
-    'İhsan Erturgut İlkokulu',
-    'İhsan Erturgut Ortaokulu',
-    'İlçe Milli Eğitim Müdürlüğü',
-    'İnci Üzmez Mesleki ve Teknik Anadolu Lisesi',
-    'Irlamaz Refik Pınar İlkokulu',
-    'Irlamaz Refik Pınar Ortaokulu',
-    'İzzettin 75. Yıl Ortaokulu',
-    'İzzettin 75. Yıl İlkokulu',
-    'Kabaçınar İlkokulu',
-    'Kamil Semizler İlkokulu',
-    'Mehmet Akif Ersoy Ortaokulu',
-    'Mehmet Altan Anaokulu',
-    'Mehmet Gürel İlkokulu',
-    'Mesleki Eğitim Merkezi',
-    'Musacalı İlkokulu',
-    'Musacalı Ortaokulu',
-    'Namık Kemal İlkokulu',
-    'Niyazi Üzmez Anadolu Lisesi',
-    'Niyazi Üzmez İlkokulu',
-    'Niyazi Üzmez İmam Hatip Ortaokulu',
-    'Ören İlkokulu',
-    'Orhan Polat Yağcı İlkokulu',
-    'Rotary İlkokulu',
-    'Sabiha Erturgut İlkokulu',
-    'Sabiha Erturgut Ortaokulu',
-    'Şadi Turgutlu Ortaokulu',
-    'Samiye- Nuri Sevil İlkokulu',
-    'Samiye-Nuri Sevil Ortaokulu',
-    'Sarıbey Dr. Hüseyin Orhan İlkokulu',
-    'Şehit Abdullah Tayyip Olçak Ortaokulu',
-    'Şehit Sevda Güngör Anaokulu',
-    'Şehit Suat Akıncı Kız Anadolu İmam Hatip Lisesi',
-    'Senem Aka Anadolu Lisesi',
-    'TEV-Cemile ve Samiye Bayar İlkokulu',
-    'TOKİ-Şehit Komando Onbaşı Ömer Balkan İlkokulu',
-    'TOKİ-Şehit Komando Onbaşı Ömer Balkan Ortaokulu',
-    'Turgutlu Anadolu İmam Hatip Lisesi',
-    'Turgutlu Anadolu Lisesi',
-    'Turgutlu Anaokulu',
-    'Turgutlu Bilim ve Sanat Merkezi',
-    'Turgutlu İmam Hatip Ortaokulu',
-    'Turgutlu Lisesi',
-    'Turgutlu Mesleki ve Teknik Anadolu Lisesi',
-    'Turgutlu Öğretmenevi ve Akşam Sanat Okulu',
-    'Turgutlu Selman Işılak Mesleki ve Teknik Anadolu Lisesi',
-    'Urganlı 23 Nisan Ortaokulu',
-    'Urganlı Atatürk İlkokulu',
-    'Urganlı Besime Işıldak İlkokulu',
-    'Urganlı Çok Programlı Anadolu Lisesi',
-    'Urganlı İmam Hatip Ortaokulu',
-    'Vicdan Necati Parıldar İlkokulu',
-    'Yarbay Fevzi Elagöz Anaokulu',
-    'Zübeyde Hanım Mesleki ve Teknik Anadolu Lisesi',
-  ];
-
-  final List<String> categories = [
-    'Tişört',
-    'Sweatshirt',
-    'Pantolon',
-    'Ceket',
-    'Şort',
-    'Şort Etek',
-    'Selanik',
-    'Eşofman Takımı',
-    'Eşofman Tişörtü',
-    'Eşofman Altı',
-  ];
+  final List<String> schools = [];
+  final List<String> categories = [];
+  final List<String> sizes = [];
+  Map<String, List<String>> schoolCategoriesMap = {}; // Okul -> Kategoriler Map'i
 
   @override
   void initState() {
     super.initState();
     fetchActiveOrders();
+    fetchSchoolsAndCategories();
+    quantityController.addListener(() {
+      setState(() {});
+    });
   }
 
   Future<void> fetchActiveOrders() async {
@@ -137,10 +46,95 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
     }
   }
 
+  Future<void> fetchSchoolsAndCategories() async {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance.collection('ürünler').get();
+
+      for (var doc in querySnapshot.docs) {
+        String schoolName = doc['okul adı'];
+        String category = doc['kategori'];
+
+        schoolSet.add(schoolName);
+        categorySet.add(category);
+
+        if (!schoolCategoriesMap.containsKey(schoolName)) {
+          schoolCategoriesMap[schoolName] = [];
+        }
+        if (!schoolCategoriesMap[schoolName]!.contains(category)) {
+          schoolCategoriesMap[schoolName]!.add(category);
+        }
+      }
+
+      setState(() {
+        schools.addAll(schoolSet);
+        if (selectedSchool != null) {
+          categories.clear();
+          categories.addAll(schoolCategoriesMap[selectedSchool] ?? []);
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Okul ve kategori verileri alınırken bir hata oluştu: $e')),
+      );
+    }
+  }
+
+  void onSchoolChanged(String? newSchool) {
+    setState(() {
+      selectedSchool = newSchool;
+      selectedCategory = null;
+      selectedSize = null;
+      categories.clear();
+      sizes.clear();
+      if (newSchool != null && schoolCategoriesMap.containsKey(newSchool)) {
+        categories.addAll(schoolCategoriesMap[newSchool]!);
+      }
+    });
+  }
+
+  Future<void> fetchSizesForCategory(String? school, String? category) async {
+    if (school == null || category == null) return;
+
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('ürünler')
+          .where('okul adı', isEqualTo: school)
+          .where('kategori', isEqualTo: category)
+          .get();
+
+      Set<String> sizeSet = Set();
+      for (var doc in querySnapshot.docs) {
+        sizeSet.add(doc['beden']);
+      }
+
+      setState(() {
+        sizes.clear();
+        sizes.addAll(sizeSet);
+        selectedSize = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Beden verileri alınırken bir hata oluştu: $e')),
+      );
+    }
+  }
+
+  void onCategoryChanged(String? newCategory) {
+    setState(() {
+      selectedCategory = newCategory;
+      selectedSize = null;
+      sizes.clear();
+    });
+
+    if (selectedSchool != null && newCategory != null) {
+      fetchSizesForCategory(selectedSchool, newCategory);
+    }
+  }
+
   Future<void> addOrder() async {
     if (selectedSchool == null ||
         selectedCategory == null ||
-        sizeController.text.isEmpty ||
+        selectedSize == null ||
         quantityController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lütfen tüm alanları doldurun')),
@@ -152,7 +146,7 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'okul adı': selectedSchool!,
       'kategori': selectedCategory!,
-      'beden': sizeController.text,
+      'beden': selectedSize!,
       'adet': int.parse(quantityController.text),
       'orderDate': DateTime.now().toIso8601String(),
     };
@@ -165,7 +159,7 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
 
       selectedSchool = null;
       selectedCategory = null;
-      sizeController.clear();
+      selectedSize = null;
       quantityController.clear();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -177,73 +171,6 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
       );
     }
   }
-
-  Future<void> receiveOrder(String orderId) async {
-    try {
-      // Siparişi getir
-      var orderDoc = await FirebaseFirestore.instance
-          .collection('siparisler')
-          .where('id', isEqualTo: orderId)
-          .limit(1)
-          .get();
-
-      if (orderDoc.docs.isNotEmpty) {
-        var orderData = orderDoc.docs.first.data();
-
-        // Siparişi sil
-        await orderDoc.docs.first.reference.delete();
-        setState(() {
-          activeOrders.removeWhere((order) => order['id'] == orderId);
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sipariş teslim alındı ve stoka eklendi')),
-        );
-
-        // Siparişin detaylarını al
-         String okulAdi = orderData['okul adı'];
-         String kategori = orderData['kategori'];
-         String beden = orderData['beden'];
-         int siparisAdet = orderData['adet'];
-
-         print("siparis adet: $siparisAdet");
-
-        // Ürünler koleksiyonunu güncelle
-        var urunQuery = await FirebaseFirestore.instance
-            .collection('ürünler')
-            .where('okul adı', isEqualTo: okulAdi)
-            .where('kategori', isEqualTo: kategori)
-            .where('beden', isEqualTo: beden)
-            .limit(1)
-            .get();
-
-        print("ürünler koleksiyonundan gelen ürün boş mu ?");
-        print(urunQuery.docs.isEmpty);
-
-        if (urunQuery.docs.isNotEmpty) {
-          var urunDoc = urunQuery.docs.first;
-          var mevcutAdet = urunDoc.data()['adet'] ?? 0;
-
-          print("mevcut adet: $mevcutAdet");
-
-          // Yeni adet miktarını hesapla ve güncelle
-          await urunDoc.reference.update({
-            'adet': mevcutAdet + siparisAdet,
-          });
-        } else {
-          // Eğer eşleşen ürün yoksa kullanıcıyı bilgilendir
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Eşleşen bir ürün bulunamadı')),
-          );
-        }
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sipariş silinirken bir hata oluştu: $e')),
-      );
-    }
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -267,16 +194,9 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
                     value: selectedSchool,
                     decoration: InputDecoration(labelText: 'Okul'),
                     items: schools.map((String school) {
-                      return DropdownMenuItem<String>(
-                        value: school,
-                        child: Text(school),
-                      );
+                      return DropdownMenuItem<String>(value: school, child: Text(school));
                     }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedSchool = newValue;
-                      });
-                    },
+                    onChanged: onSchoolChanged,
                   ),
                 ),
                 SizedBox(width: 10),
@@ -285,16 +205,9 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
                     value: selectedCategory,
                     decoration: InputDecoration(labelText: 'Kategori'),
                     items: categories.map((String category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: Text(category),
-                      );
+                      return DropdownMenuItem<String>(value: category, child: Text(category));
                     }).toList(),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        selectedCategory = newValue;
-                      });
-                    },
+                    onChanged: selectedSchool != null ? onCategoryChanged : null,
                   ),
                 ),
               ],
@@ -303,12 +216,19 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: sizeController,
-                    decoration: InputDecoration(
-                      labelText: 'Beden',
-                      border: OutlineInputBorder(),
-                    ),
+                  child: DropdownButtonFormField<String>(
+                    value: selectedSize,
+                    decoration: InputDecoration(labelText: 'Beden'),
+                    items: sizes.map((String size) {
+                      return DropdownMenuItem<String>(value: size, child: Text(size));
+                    }).toList(),
+                    onChanged: selectedCategory != null
+                        ? (String? newValue) {
+                      setState(() {
+                        selectedSize = newValue;
+                      });
+                    }
+                        : null,
                   ),
                 ),
                 SizedBox(width: 10),
@@ -321,6 +241,7 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    enabled: selectedSize != null,
                   ),
                 ),
               ],
@@ -328,7 +249,12 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
             SizedBox(height: 10),
             Center(
               child: ElevatedButton(
-                onPressed: addOrder,
+                onPressed: (selectedSchool != null &&
+                    selectedCategory != null &&
+                    selectedSize != null &&
+                    quantityController.text.isNotEmpty)
+                    ? addOrder
+                    : null,
                 child: Text('Sipariş Oluştur'),
               ),
             ),
@@ -370,5 +296,56 @@ class _WholesaleOrdersPageState extends State<WholesaleOrdersPage> {
         ),
       ),
     );
+  }
+
+  Future<void> receiveOrder(String orderId) async {
+    try {
+      var orderDoc = await FirebaseFirestore.instance
+          .collection('siparisler')
+          .where('id', isEqualTo: orderId)
+          .limit(1)
+          .get();
+
+      if (orderDoc.docs.isNotEmpty) {
+        var orderData = orderDoc.docs.first.data();
+        await orderDoc.docs.first.reference.delete();
+        setState(() {
+          activeOrders.removeWhere((order) => order['id'] == orderId);
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sipariş teslim alındı ve stoka eklendi')),
+        );
+
+        String okulAdi = orderData['okul adı'];
+        String kategori = orderData['kategori'];
+        String beden = orderData['beden'];
+        int siparisAdet = orderData['adet'];
+
+        var urunQuery = await FirebaseFirestore.instance
+            .collection('ürünler')
+            .where('okul adı', isEqualTo: okulAdi)
+            .where('kategori', isEqualTo: kategori)
+            .where('beden', isEqualTo: beden)
+            .limit(1)
+            .get();
+
+        if (urunQuery.docs.isNotEmpty) {
+          var urunDoc = urunQuery.docs.first;
+          var mevcutAdet = urunDoc.data()['adet'] ?? 0;
+          await urunDoc.reference.update({
+            'adet': mevcutAdet + siparisAdet,
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Eşleşen bir ürün bulunamadı')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sipariş silinirken bir hata oluştu: $e')),
+      );
+    }
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:semihgiyim/screens/settings_page.dart';
+import 'package:semihgiyim/screens/barcode_create_page.dart';
 import 'product_create_page.dart';
 import 'stock_tracking_page.dart';
 import 'sales_return_page.dart';
@@ -86,11 +86,11 @@ class HomePage extends StatelessWidget {
                         );
                       }),
                       _buildMenuCard(
-                          context, 'Ayarlar', Icons.settings, Colors.teal, () {
+                          context, 'Barkod Oluştur', Icons.qr_code_2, Colors.teal, () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => SettingsPage()),
+                              builder: (context) => BarcodeCreationPage()),
                         );
                       }),
                     ],
