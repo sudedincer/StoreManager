@@ -96,6 +96,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
       String currentDay = DateFormat('EEE').format(DateTime.now()); // gün
 
+      // Satışa başlamadan önce stok kontrolü yapalım
       for (var item in cartItems) {
         String productCode = item['barcode'];
         int soldQuantity = item['quantity'];
@@ -109,26 +110,32 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
           DocumentSnapshot productDoc = querySnapshot.docs.first;
           int currentQuantity = int.tryParse(productDoc['adet'].toString()) ?? 0;
 
-          if (currentQuantity >= soldQuantity) {
-            int newQuantity = currentQuantity - soldQuantity;
-
-            await firestore.collection('ürünler').doc(productDoc.id).update({
-              'adet': newQuantity,
-            });
-
-            // Günlük satış kaydını oluştur
-            await firestore.collection('satışlar').doc(currentDate).collection('kategoriler').doc(item['category']).set({
-              'totalAmount': FieldValue.increment(totalAmount),
-              'sales': FieldValue.increment(soldQuantity),
-              'price': FieldValue.increment(item['price'] * soldQuantity),
-            }, SetOptions(merge: true));
-
-
-            // Haftalık satış kaydını oluştur
-            await firestore.collection('haftalık satışlar').doc('haftalar').collection(currentWeek).doc(currentDay).set({
-              'totalAmount': FieldValue.increment(totalAmount),
-            }, SetOptions(merge: true));
+          // Stok yetersizse, kullanıcıya uyarı ver
+          if (currentQuantity < soldQuantity) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Stokta yeterli ürün yok: ${item['category']}'),
+            ));
+            return; // Stok yetersiz olduğunda satışı durdur
           }
+
+          // Yeterli stok varsa, satış işlemini devam ettir
+          int newQuantity = currentQuantity - soldQuantity;
+
+          await firestore.collection('ürünler').doc(productDoc.id).update({
+            'adet': newQuantity,
+          });
+
+          // Günlük satış kaydını oluştur
+          await firestore.collection('satışlar').doc(currentDate).collection('kategoriler').doc(item['category']).set({
+            'totalAmount': FieldValue.increment(totalAmount),
+            'sales': FieldValue.increment(soldQuantity),
+            'price': FieldValue.increment(item['price'] * soldQuantity),
+          }, SetOptions(merge: true));
+
+          // Haftalık satış kaydını oluştur
+          await firestore.collection('haftalık satışlar').doc('haftalar').collection(currentWeek).doc(currentDay).set({
+            'totalAmount': FieldValue.increment(totalAmount),
+          }, SetOptions(merge: true));
         }
       }
 
@@ -144,7 +151,7 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
     }
   }
 
-  void completeReturn() async {
+  Future<void> completeReturn() async {
     try {
       String currentDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
       String currentWeek = DateFormat('w').format(DateTime.now()); // Haftanın numarasını alıyoruz
@@ -203,7 +210,6 @@ class _SalesReturnPageState extends State<SalesReturnPage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Bir hata oluştu.')));
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
