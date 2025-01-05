@@ -202,7 +202,7 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                     selectedSize != null)
                     ? searchBarcode
                     : null,
-                child: Text("Ara"),
+                child: Text("Barkod Oluştur"),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(250, 50),
                   padding: EdgeInsets.symmetric(vertical: 16),
@@ -230,7 +230,7 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                             ),
                             SizedBox(height: 20),
                             Text(
-                              "Barcode: $barcode",
+                              "Ürün Kodu: $barcode",
                               style: TextStyle(fontSize: 18),
                               textAlign: TextAlign.center,
                             ),
