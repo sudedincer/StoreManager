@@ -25,7 +25,8 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
 
   Future<void> fetchSchools() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance.collection('ürünler').get();
+      final querySnapshot =
+      await FirebaseFirestore.instance.collection('ürünler').get();
       final Set<String> schoolSet = {};
 
       for (var doc in querySnapshot.docs) {
@@ -94,7 +95,9 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
   }
 
   Future<void> searchBarcode() async {
-    if (selectedSchool == null || selectedCategory == null || selectedSize == null) return;
+    if (selectedSchool == null ||
+        selectedCategory == null ||
+        selectedSize == null) return;
 
     try {
       final querySnapshot = await FirebaseFirestore.instance
@@ -146,6 +149,7 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                     selectedSchool = newValue;
                     selectedCategory = null;
                     selectedSize = null;
+                    barcode = null; // Barkod ve buton gizlensin
                     categories.clear();
                     sizes.clear();
                   });
@@ -169,6 +173,7 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                   setState(() {
                     selectedCategory = newValue;
                     selectedSize = null;
+                    barcode = null; // Barkod ve buton gizlensin
                     sizes.clear();
                   });
                   fetchSizes();
@@ -191,6 +196,7 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                     ? (String? newValue) {
                   setState(() {
                     selectedSize = newValue;
+                    barcode = null; // Barkod ve buton gizlensin
                   });
                 }
                     : null,
@@ -229,15 +235,24 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
                               drawText: true,
                             ),
                             SizedBox(height: 20),
-                            Text(
-                              "Ürün Kodu: $barcode",
-                              style: TextStyle(fontSize: 18),
-                              textAlign: TextAlign.center,
-                            ),
                           ],
                         ),
                       ),
                     ),
+                  ),
+                ),
+              SizedBox(height: 20),
+              if (barcode != null && barcode != 'Ürün bulunamadı.')
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Barkod Aktarıldı')),
+                    );
+                  },
+                  child: Text("Barkodu dışa aktar."),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(250, 50),
+                    padding: EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
             ],
