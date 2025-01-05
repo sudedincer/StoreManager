@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import 'package:screenshot/screenshot.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'dart:typed_data';
 
 class BarcodeCreationPage extends StatefulWidget {
   @override
@@ -8,6 +12,9 @@ class BarcodeCreationPage extends StatefulWidget {
 }
 
 class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
+
+  final ScreenshotController screenshotController = ScreenshotController();
+
   String? selectedSchool;
   String? selectedCategory;
   String? selectedSize;
@@ -122,6 +129,58 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
       );
     }
   }
+  Future<void> _captureAndSaveBarcode() async {
+    try {
+      // Barkod widget'ının ekran görüntüsünü al
+      final Uint8List? image = await screenshotController.capture();
+
+      if (image == null) {
+        throw Exception('Screenshot alınamadı');
+      }
+
+      // Downloads klasörünü al
+      final Directory? downloadsDir = await getDownloadsDirectory();
+
+      if (downloadsDir == null) {
+        throw Exception('Downloads klasörü bulunamadı');
+      }
+
+      // Dosya adını oluştur
+      final String fileName = '${selectedSchool}_${selectedCategory}_${selectedSize}.png'
+          .replaceAll(' ', '_') // Boşlukları alt çizgi ile değiştir
+          .replaceAll(RegExp(r'[^\w\s\-\_\.]'), ''); // Özel karakterleri temizle
+
+      // Tam dosya yolunu oluştur
+      final String filePath = '${downloadsDir.path}${Platform.pathSeparator}$fileName';
+
+      // Dosyayı kaydet
+      final File imageFile = File(filePath);
+      await imageFile.writeAsBytes(image);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Barkod başarıyla kaydedildi: $filePath'),
+          duration: Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Klasörü Aç',
+            onPressed: () async {
+              if (Platform.isWindows) {
+                await Process.run('explorer.exe', ['/select,', filePath]);
+              } else if (Platform.isMacOS) {
+                await Process.run('open', ['-R', filePath]);
+              } else if (Platform.isLinux) {
+                await Process.run('xdg-open', [downloadsDir.path]);
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Barkod kaydedilirken bir hata oluştu: $e')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,133 +188,147 @@ class _BarcodeCreationPageState extends State<BarcodeCreationPage> {
       appBar: AppBar(
         title: Text("Barkod Oluştur"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                value: selectedSchool,
-                decoration: InputDecoration(labelText: 'Okul Adı'),
-                items: schools.map((String school) {
-                  return DropdownMenuItem<String>(
-                    value: school,
-                    child: Text(school),
-                  );
-                }).toList(),
-                onChanged: (String? newValue) {
-                  setState(() {
-                    selectedSchool = newValue;
-                    selectedCategory = null;
-                    selectedSize = null;
-                    barcode = null; // Barkod ve buton gizlensin
-                    categories.clear();
-                    sizes.clear();
-                  });
-                  fetchCategories();
-                },
-              ),
-              SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedCategory,
-                decoration: InputDecoration(labelText: 'Kategoriler'),
-                items: selectedSchool != null
-                    ? categories.map((String category) {
-                  return DropdownMenuItem<String>(
-                    value: category,
-                    child: Text(category),
-                  );
-                }).toList()
-                    : [],
-                onChanged: selectedSchool != null
-                    ? (String? newValue) {
-                  setState(() {
-                    selectedCategory = newValue;
-                    selectedSize = null;
-                    barcode = null; // Barkod ve buton gizlensin
-                    sizes.clear();
-                  });
-                  fetchSizes();
-                }
-                    : null,
-              ),
-              SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedSize,
-                decoration: InputDecoration(labelText: 'Beden'),
-                items: selectedCategory != null
-                    ? sizes.map((String size) {
-                  return DropdownMenuItem<String>(
-                    value: size,
-                    child: Text(size),
-                  );
-                }).toList()
-                    : [],
-                onChanged: selectedCategory != null
-                    ? (String? newValue) {
-                  setState(() {
-                    selectedSize = newValue;
-                    barcode = null; // Barkod ve buton gizlensin
-                  });
-                }
-                    : null,
-              ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: (selectedSchool != null &&
-                    selectedCategory != null &&
-                    selectedSize != null)
-                    ? searchBarcode
-                    : null,
-                child: Text("Barkod Oluştur"),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: Size(250, 50),
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              SizedBox(height: 150),
-              if (barcode != null && barcode != 'Ürün bulunamadı.')
-                Center(
-                  child: SizedBox(
-                    width: 500, // Card'ın genişliği
-                    height: 300, // Card'ın yüksekliği
-                    child: Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            BarcodeWidget(
-                              barcode: Barcode.code128(),
-                              data: barcode!,
-                              width: 300,
-                              height: 100,
-                              drawText: true,
-                            ),
-                            SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ),
+      body: Center( // Center widget'ı ekledik
+        child: Container(
+          constraints: BoxConstraints(maxWidth: 800), // Maksimum genişlik sınırı
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedSchool,
+                  decoration: InputDecoration(
+                    labelText: 'Okul Adı',
+                    border: OutlineInputBorder(),
                   ),
-                ),
-              SizedBox(height: 20),
-              if (barcode != null && barcode != 'Ürün bulunamadı.')
-                ElevatedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Barkod Aktarıldı')),
+                  items: schools.map((String school) {
+                    return DropdownMenuItem<String>(
+                      value: school,
+                      child: Text(school),
                     );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      selectedSchool = newValue;
+                      selectedCategory = null;
+                      selectedSize = null;
+                      barcode = null;
+                      categories.clear();
+                      sizes.clear();
+                    });
+                    fetchCategories();
                   },
-                  child: Text("Barkodu dışa aktar."),
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Kategoriler',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: selectedSchool != null
+                      ? categories.map((String category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList()
+                      : [],
+                  onChanged: selectedSchool != null
+                      ? (String? newValue) {
+                    setState(() {
+                      selectedCategory = newValue;
+                      selectedSize = null;
+                      barcode = null;
+                      sizes.clear();
+                    });
+                    fetchSizes();
+                  }
+                      : null,
+                ),
+                SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedSize,
+                  decoration: InputDecoration(
+                    labelText: 'Beden',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: selectedCategory != null
+                      ? sizes.map((String size) {
+                    return DropdownMenuItem<String>(
+                      value: size,
+                      child: Text(size),
+                    );
+                  }).toList()
+                      : [],
+                  onChanged: selectedCategory != null
+                      ? (String? newValue) {
+                    setState(() {
+                      selectedSize = newValue;
+                      barcode = null;
+                    });
+                  }
+                      : null,
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: (selectedSchool != null &&
+                      selectedCategory != null &&
+                      selectedSize != null)
+                      ? searchBarcode
+                      : null,
+                  child: Text("Barkod Oluştur"),
                   style: ElevatedButton.styleFrom(
                     minimumSize: Size(250, 50),
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
-            ],
+                SizedBox(height: 30),
+                if (barcode != null && barcode != 'Ürün bulunamadı.')
+                  Center(
+                    child: SizedBox(
+                      width: 500,
+                      height: 300,
+                      child: Card(
+                        elevation: 4,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Screenshot(
+                            controller: screenshotController,
+                            child: Container(
+                              color: Colors.white,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  BarcodeWidget(
+                                    barcode: Barcode.code128(),
+                                    data: barcode!,
+                                    width: 300,
+                                    height: 100,
+                                    drawText: true,
+                                  ),
+                                  SizedBox(height: 20),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 20),
+                if (barcode != null && barcode != 'Ürün bulunamadı.')
+                  ElevatedButton(
+                    onPressed: _captureAndSaveBarcode,
+                    child: Text("Barkodu dışa aktar"),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(250, 50),
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
