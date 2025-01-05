@@ -36,7 +36,7 @@ class _RevenueTrackingPageState extends State<RevenueTrackingPage> {
         return {
           'category': doc.id,
           'quantity': doc['sales'],
-          'revenue': doc['totalAmount'],
+          'revenue': doc['price']*doc['sales'],
         };
       }).toList();
 
